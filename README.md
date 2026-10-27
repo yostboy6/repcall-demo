@@ -1,5 +1,7 @@
 # RepCall
 
+[Open RepCall](https://yostboy6.github.io/repcall-demo/) · [Source code](https://github.com/yostboy6/repcall-demo)
+
 A working website prototype that connects learners with supervised procedure opportunities. Nurses and surgical residents post an opportunity; available learners receive an alert, claim it, contact the posting clinician, and arrange supervision. A simple procedure log and editable personal goals help learners track their experience.
 
 ## Try it
@@ -35,13 +37,13 @@ Open the local URL printed by the server. Run the workflow tests with:
 npm test
 ```
 
-The GitHub Pages workflow publishes the static files in the repository root. There is no build step or hosted application server.
+GitHub Pages serves the static files from the root of `main`. There is no build step or hosted application server.
 
 ## Goals and education references
 
-The procedure count goals are **editable personal targets**, not accreditation requirements. Starting targets of five for procedures such as venipuncture, peripheral IV placement, Foley catheter placement, suturing, and NG tube placement are product defaults. They are not AAMC or ACGME minimums.
+The procedure count goals are **editable personal targets**, not accreditation requirements. Starting targets of five are product defaults for each tracked skill. They are not AAMC or ACGME minimums.
 
-For medical students, the [AAMC Core EPAs](https://www.aamc.org/about-us/mission-areas/medical-education/cbme/core-epas) describe expected abilities at the transition to residency. The [EPA 12 toolkit](https://www.aamc.org/media/20166/download) covers basic CPR, bag-mask ventilation, sterile technique, venipuncture, IV insertion, and Foley catheter placement. It does not assign procedure-count quotas. Suturing and NG tube placement are additional personal goals in this product.
+For medical students, the [AAMC Core EPAs](https://www.aamc.org/about-us/mission-areas/medical-education/cbme/core-epas) describe expected abilities at the transition to residency. The [EPA 12 toolkit](https://www.aamc.org/media/20166/download) covers basic CPR, bag-mask ventilation, sterile technique, venipuncture, IV insertion, and Foley catheter placement. It does not assign procedure-count quotas. Residents also have personal targets for suturing, central lines, and chest tubes.
 
 The separate surgical training reference summarizes the [ACGME 2026 General Surgery requirements](https://www.acgme.org/globalassets/pfassets/programrequirements/2026-prs/440_generalsurgery_2026.pdf), section 4.11.j: 850 major cases over residency, including at least 250 operations before PGY-3, 200 major cases during the chief resident experience, and 25 teaching-assistant cases. These categories are reference information; bedside entries are not automatically mapped to them, and these totals are not medical-student targets. Programs must use the [ACGME Case Log System and category guidance](https://www.acgme.org/specialties/surgery/documents-and-resources/case-log-information/) for official reporting.
 
