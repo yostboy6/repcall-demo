@@ -1,0 +1,12 @@
+{
+  "name": "repcall-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A focused procedure-opportunity demo for clinical staff and medical students.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test domain.test.mjs",
+    "check": "node --check app.js && node --check domain.js && node --check auth.js && node --check server.mjs"
+  }
+}
