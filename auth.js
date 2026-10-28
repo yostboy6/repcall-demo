@@ -1,8 +1,5 @@
-import { addUser } from './domain.js';
+import { api } from './api.js';
 
-const CREDENTIAL_KEY = 'repcall-credentials-v1';
-const SEED_IDS = ['staff-maya', 'learner-jordan', 'resident-asha'];
-const escape = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 const icon = name => {
   const paths = {
     arrow: '<path d="M5 12h14m-5-5 5 5-5 5"/>',
@@ -17,46 +14,10 @@ const icon = name => {
   return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${paths[name] || paths.check}</svg>`;
 };
 
-function readCredentials() {
-  try { return JSON.parse(localStorage.getItem(CREDENTIAL_KEY) || '{}'); }
-  catch { return {}; }
-}
-function base64(bytes) { return btoa(String.fromCharCode(...bytes)); }
-function fromBase64(value) { return Uint8Array.from(atob(value), character => character.charCodeAt(0)); }
-async function passwordVerifier(password, salt) {
-  const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 120000, hash: 'SHA-256' }, material, 256);
-  return base64(new Uint8Array(bits));
-}
-async function makeCredential(password) {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  return { salt: base64(salt), verifier: await passwordVerifier(password, salt) };
-}
-async function checkPassword(user, password) {
-  const credentials = readCredentials();
-  let credential = credentials[user.id];
-  if (!credential && SEED_IDS.includes(user.id)) {
-    credential = await makeCredential('demo1234');
-    credentials[user.id] = credential;
-    localStorage.setItem(CREDENTIAL_KEY, JSON.stringify(credentials));
-  }
-  if (!credential) return false;
-  const candidate = await passwordVerifier(password, fromBase64(credential.salt));
-  if (candidate.length !== credential.verifier.length) return false;
-  let different = 0;
-  for (let index = 0; index < candidate.length; index++) different |= candidate.charCodeAt(index) ^ credential.verifier.charCodeAt(index);
-  return different === 0;
-}
-
-export function mountAuth(container, { getState, onStateChange, onLogin }) {
+export function mountAuth(container, { onLogin }) {
   let mode = 'signin';
   const render = () => {
     const signup = mode === 'signup';
-    const profiles = [
-      ['staff-maya', 'nurse', 'Nurse', 'Maya Patel'],
-      ['learner-jordan', 'student', 'Med student', 'Jordan Kim'],
-      ['resident-asha', 'resident', 'Resident', 'Asha Patel · PGY-4'],
-    ].filter(([id]) => getState().users.some(user => user.id === id));
     container.innerHTML = `
       <div class="login-page">
         <section class="login-story" aria-label="RepCall">
@@ -79,7 +40,7 @@ export function mountAuth(container, { getState, onStateChange, onLogin }) {
           <div class="login-form-wrap">
             <h2>${signup ? 'Join your team.' : 'Welcome back.'}</h2>
             <p class="login-subtitle">${signup ? 'Create your RepCall account.' : 'Your next opportunity starts here.'}</p>
-            <form class="login-form" id="auth-form">
+            <form class="login-form" id="auth-form" method="post">
               <div id="auth-error" class="form-error" role="alert"></div>
               ${signup ? `
                 <label class="field"><span>Full name</span><input name="name" autocomplete="name" required maxlength="80" placeholder="Your full name"></label>
@@ -92,13 +53,11 @@ export function mountAuth(container, { getState, onStateChange, onLogin }) {
               <button class="btn btn-primary btn-wide" type="submit">${signup ? 'Create account' : 'Sign in'}${icon('arrow')}</button>
             </form>
             <p class="small muted" style="text-align:center;margin-top:20px">${signup ? 'Already have an account?' : 'New to RepCall?'} <button id="change-auth-mode" class="btn btn-quiet btn-sm" style="font-size:12px;min-height:28px;padding:3px 5px;color:var(--green)">${signup ? 'Sign in' : 'Create account'}</button></p>
-            ${!signup && profiles.length ? `<div style="border-top:1px solid var(--line);margin-top:23px;padding-top:21px"><p class="eyebrow muted" style="font-size:9px;letter-spacing:1.1px;margin-bottom:13px">Quick access</p><div class="role-picker" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:0">${profiles.map(([id, symbol, title, name]) => `<button class="role-option" type="button" data-profile="${escape(id)}" style="padding:13px 9px">${icon(symbol)}<strong style="font-size:11px">${title}</strong><small style="font-size:9px;line-height:1.5">${name}</small></button>`).join('')}</div></div>` : ''}
             <div class="login-bottom">${icon('shield')}Built for the team around you.</div>
           </div>
         </main>
       </div>`;
     container.querySelector('#change-auth-mode').addEventListener('click', () => { mode = signup ? 'signin' : 'signup'; render(); });
-    container.querySelectorAll('[data-profile]').forEach(button => button.addEventListener('click', () => onLogin(button.dataset.profile)));
     const role = container.querySelector('#signup-role');
     role?.addEventListener('change', () => {
       const resident = role.value === 'resident';
@@ -123,17 +82,17 @@ export function mountAuth(container, { getState, onStateChange, onLogin }) {
       try {
         if (signup) {
           if (password.length < 8) throw new Error('Use a password with at least 8 characters.');
-          const next = addUser(getState(), { name: String(data.get('name')), email, role: String(data.get('role')), pgy: data.get('role') === 'resident' ? Number(data.get('pgy')) : undefined, extension: String(data.get('extension')) });
-          const user = next.users.find(person => person.email.toLowerCase() === email);
-          const credentials = readCredentials();
-          credentials[user.id] = await makeCredential(password);
-          localStorage.setItem(CREDENTIAL_KEY, JSON.stringify(credentials));
-          onStateChange(next);
-          onLogin(user.id);
+          const result = await api.register({
+            name: String(data.get('name')).trim(),
+            email, password,
+            role: String(data.get('role')),
+            ...(data.get('role') === 'resident' ? { pgy: Number(data.get('pgy')) } : {}),
+            extension: String(data.get('extension')).trim(),
+          });
+          await onLogin(result);
         } else {
-          const user = getState().users.find(person => person.email.toLowerCase() === email);
-          if (!user || !await checkPassword(user, password)) throw new Error('Check your email and password.');
-          onLogin(user.id);
+          const result = await api.login({ email, password });
+          await onLogin(result);
         }
       } catch (problem) {
         error.textContent = problem instanceof Error ? problem.message : 'Unable to sign in. Please try again.';

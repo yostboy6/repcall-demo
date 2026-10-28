@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A focused procedure-opportunity demo for clinical staff and medical students.",
+  "description": "Shared procedure requests, accounts, logs, and goals for RepCall.",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test domain.test.mjs",
-    "check": "node --check app.js && node --check domain.js && node --check auth.js && node --check server.mjs"
+    "test": "node --test *.test.mjs",
+    "check": "node --check app.js && node --check api.js && node --check config.js && node --check domain.js && node --check auth.js && node --check backend.mjs && node --check server.mjs"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }
